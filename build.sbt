@@ -5,9 +5,9 @@ version in ThisBuild := "1.0-SNAPSHOT"
 scalaVersion in ThisBuild := "2.11.8"
 
 lazy val `hello-lagom` = (project in file("."))
-  .aggregate(`user-api`, `user-impl`)
+  .aggregate(`friend-api`, `friend-impl`)
 
-lazy val `user-api` = (project in file("user-api"))
+lazy val `friend-api` = (project in file("friend-api"))
   .settings(common: _*)
   .settings(
     libraryDependencies ++= Seq(
@@ -16,7 +16,7 @@ lazy val `user-api` = (project in file("user-api"))
     )
   )
 
-lazy val `user-impl` = (project in file("user-impl"))
+lazy val `friend-impl` = (project in file("friend-impl"))
   .enablePlugins(LagomJava)
   .settings(common: _*)
   .settings(
@@ -28,7 +28,7 @@ lazy val `user-impl` = (project in file("user-impl"))
     )
   )
   .settings(lagomForkedTestSettings: _*)
-  .dependsOn(`user-api`)
+  .dependsOn(`friend-api`)
 
 val lombok = "org.projectlombok" % "lombok" % "1.16.10"
 
