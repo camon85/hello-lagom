@@ -6,3 +6,6 @@ For instructions on running and testing the project, see https://www.lagomframew
 
 # Reference Guide
 https://www.lagomframework.com/documentation/1.3.x/java/ReferenceGuide.html
+
+# Lagom Github
+https://github.com/lagom
