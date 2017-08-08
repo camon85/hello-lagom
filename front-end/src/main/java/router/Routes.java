@@ -45,9 +45,7 @@ public class Routes implements Router {
                 // Index
                 .GET("/").routeTo(application::index)
                 .GET("/signup").routeTo(application::index)
-                .GET("/addFriend").routeTo(application::index)
                 .GET("/users/:id").routeTo(application::userStream)
-                .GET("/cb").routeTo(application::circuitBreaker)
 
                 // Assets
                 .GET("/assets/*file").routeAsync((String file) ->

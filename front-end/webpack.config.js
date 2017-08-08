@@ -9,8 +9,7 @@ const BUILD_DIR = process.env.BUILD_SYSTEM && process.env.BUILD_SYSTEM.toLowerCa
 module.exports = {
   context: APP_DIR,
   entry: {
-    main: APP_DIR + '/main.jsx',
-    circuitbreaker: APP_DIR + '/circuitbreaker.jsx',
+    main: APP_DIR + '/main.jsx'
   },
   output: {
     path: BUILD_DIR,

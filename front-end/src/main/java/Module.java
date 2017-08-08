@@ -1,6 +1,3 @@
-/*
- * Copyright (C) 2017 Lightbend Inc. <http://www.lightbend.com>
- */
 import com.google.inject.AbstractModule;
 import com.lightbend.lagom.javadsl.api.ServiceAcl;
 import com.lightbend.lagom.javadsl.api.ServiceInfo;
@@ -10,7 +7,7 @@ public class Module extends AbstractModule implements ServiceClientGuiceSupport 
     @Override
     protected void configure() {
         bindServiceInfo(ServiceInfo.of(
-                "chirper-front-end",
+                "front-end",
                 ServiceAcl.path("(?!/api/).*")
         ));
     }

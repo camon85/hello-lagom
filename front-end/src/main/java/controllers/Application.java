@@ -1,10 +1,12 @@
 package controllers;
 
-import javax.inject.Inject;
 import play.mvc.Controller;
 import play.mvc.Result;
 
+import javax.inject.Inject;
+
 public class Application extends Controller {
+
   private WebJarAssets webJarAssets;
 
   @Inject
@@ -18,10 +20,6 @@ public class Application extends Controller {
 
   public Result userStream(String userId) {
     return ok(views.html.index.render(this.webJarAssets));
-  }
-
-  public Result circuitBreaker() {
-    return ok(views.html.circuitbreaker.render(this.webJarAssets));
   }
 
 }
