@@ -274,6 +274,9 @@ var PageLayout = React.createClass({
                          </div>
                          <div className="small-9 columns">
                              <nav>
+                                 <div className="tertiary-nav">
+                                     {links}
+                                 </div>
                                  <div className="primary-nav">
                                      {button}
                                  </div>

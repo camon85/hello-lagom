@@ -18,8 +18,4 @@ public class Application extends Controller {
     return ok(views.html.index.render(this.webJarAssets));
   }
 
-  public Result userStream(String userId) {
-    return ok(views.html.index.render(this.webJarAssets));
-  }
-
 }
