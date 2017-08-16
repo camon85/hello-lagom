@@ -3,6 +3,8 @@ package com.camon.friend.impl;
 import akka.Done;
 import com.camon.friend.api.User;
 import com.lightbend.lagom.javadsl.persistence.PersistentEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,12 +15,15 @@ import static com.camon.friend.impl.FriendEvent.*;
 
 public class FriendEntity extends PersistentEntity<FriendCommand, FriendEvent, FriendState> {
 
+    private final Logger log = LoggerFactory.getLogger(FriendEntity.class);
+
     @Override
     public Behavior initialBehavior(Optional<FriendState> snapshotState) {
         BehaviorBuilder b = newBehaviorBuilder(snapshotState.orElse(
                 new FriendState(Optional.empty())));
 
         b.setCommandHandler(CreateUser.class, (cmd, ctx) -> {
+            log.info("# Handle CreateUser");
             if (state().user.isPresent()) {
                 ctx.invalidCommand("User " + entityId() + " is already created");
                 return ctx.done();
@@ -31,9 +36,13 @@ public class FriendEntity extends PersistentEntity<FriendCommand, FriendEvent, F
         });
 
         b.setEventHandler(UserCreated.class,
-                evt -> new FriendState(Optional.of(new User(evt.userId, evt.name))));
+                evt -> {
+            log.info("# Handle UserCreated");
+            return new FriendState(Optional.of(new User(evt.userId, evt.name)));
+        });
 
         b.setReadOnlyCommandHandler(GetUser.class, (cmd, ctx) -> {
+            log.info("# Handle GetUser");
             ctx.reply(new GetUserReply(state().user));
         });
 
