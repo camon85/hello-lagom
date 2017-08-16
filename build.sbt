@@ -7,7 +7,17 @@ version in ThisBuild := "1.0-SNAPSHOT"
 scalaVersion in ThisBuild := "2.11.8"
 
 lazy val `hello-lagom` = (project in file("."))
-  .aggregate(`friend-api`, `friend-impl`)
+  .aggregate(`security`, `friend-api`, `friend-impl`, `front-end`)
+
+lazy val `security` = (project in file("security"))
+  .settings(common: _*)
+  .settings(
+    libraryDependencies ++= Seq(
+      lagomJavadslApi,
+      lagomJavadslServer % Optional,
+      lombok
+    )
+  )
 
 lazy val `friend-api` = (project in file("friend-api"))
   .settings(common: _*)
@@ -17,6 +27,7 @@ lazy val `friend-api` = (project in file("friend-api"))
       lombok
     )
   )
+  .dependsOn(`security`)
 
 lazy val `friend-impl` = (project in file("friend-impl"))
   .enablePlugins(LagomJava)
@@ -79,6 +90,7 @@ lazy val `front-end` = (project in file("front-end"))
     // Remove to use Scala IDE
     EclipseKeys.createSrc := EclipseCreateSrc.ValueSet(EclipseCreateSrc.ManagedClasses, EclipseCreateSrc.ManagedResources)
   )
+  .dependsOn(`security`)
 
 val lombok = "org.projectlombok" % "lombok" % "1.16.10"
 
