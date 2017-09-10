@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
-import static com.camon.security.ServerSecurity.authenticated;
 
 public class FriendServiceImpl implements FriendService {
 
@@ -32,16 +31,14 @@ public class FriendServiceImpl implements FriendService {
     @Override
     public ServiceCall<NotUsed, User> getUser(String userId) {
         log.info("# getUser");
-        return authenticated(uid ->
-         request ->
-            friendEntityRef(userId).ask(new FriendCommand.GetUser()).thenApply(reply -> {
-                if (reply.user.isPresent()) {
-                    return reply.user.get();
-                } else {
-                    throw new NotFound("user " + userId + " not found");
-                }
-            })
-        );
+        return request ->
+                friendEntityRef(userId).ask(new FriendCommand.GetUser()).thenApply(reply -> {
+                    if (reply.user.isPresent()) {
+                        return reply.user.get();
+                    } else {
+                        throw new NotFound("user " + userId + " not found");
+                    }
+                });
     }
 
     @Override

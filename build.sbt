@@ -7,7 +7,7 @@ version in ThisBuild := "1.0-SNAPSHOT"
 scalaVersion in ThisBuild := "2.11.8"
 
 lazy val `hello-lagom` = (project in file("."))
-  .aggregate(`security`, `friend-api`, `friend-impl`, `front-end`)
+  .aggregate(`security`, `friend-api`, `friend-impl`, `front-end`, `chirp-api`, `chirp-impl`, `activity-stream-api`, `activity-stream-impl`)
 
 lazy val `security` = (project in file("security"))
   .settings(common: _*)
@@ -91,6 +91,43 @@ lazy val `front-end` = (project in file("front-end"))
     EclipseKeys.createSrc := EclipseCreateSrc.ValueSet(EclipseCreateSrc.ManagedClasses, EclipseCreateSrc.ManagedResources)
   )
   .dependsOn(`security`)
+
+lazy val `chirp-api` = (project in file("chirp-api"))
+  .settings(
+    version := "1.0-SNAPSHOT",
+    libraryDependencies ++= Seq(
+      lagomJavadslApi,
+      lagomJavadslJackson
+    )
+  )
+
+lazy val `chirp-impl` = (project in file("chirp-impl"))
+  .enablePlugins(LagomJava)
+  .settings(
+    version := "1.0-SNAPSHOT",
+    libraryDependencies ++= Seq(
+      lagomJavadslPersistenceCassandra,
+      lagomJavadslPubSub,
+      lagomJavadslTestKit
+    )
+  )
+  .settings(lagomForkedTestSettings: _*)
+  .dependsOn(`chirp-api`)
+
+lazy val `activity-stream-api` =  (project in file("activity-stream-api"))
+  .settings(
+    version := "1.0-SNAPSHOT",
+    libraryDependencies += lagomJavadslApi
+  )
+  .dependsOn(`chirp-api`)
+
+lazy val `activity-stream-impl` = (project in file("activity-stream-impl"))
+  .enablePlugins(LagomJava)
+  .settings(
+    version := "1.0-SNAPSHOT",
+    libraryDependencies += lagomJavadslTestKit
+  )
+  .dependsOn(`activity-stream-api`, `chirp-api`, `friend-api`)
 
 val lombok = "org.projectlombok" % "lombok" % "1.16.10"
 

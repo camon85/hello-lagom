@@ -1,8 +1,20 @@
+/*
+ * Copyright (C) 2016 Lightbend Inc. <http://www.lightbend.com>
+ */
 import { createHistory } from 'history'
 import React from 'react';
 import { render } from 'react-dom';
 import { IndexRoute, Link, Route, Router } from 'react-router'
 
+/**
+ * Send a JSON message to the server.
+ *
+ * This method basically delegates to $.ajax, and so has the same semantics as that, however, before doing so it
+ * converts params.data to a JSON string, and sets the content type to application/json.
+ *
+ * @params The params object, as per the jquery $.ajax method.
+ * @returns The result of the $.ajax method (a promise).
+ */
 function sendJson(params) {
     params.data = JSON.stringify(params.data);
     params.contentType = "application/json";
@@ -39,6 +51,93 @@ var Chirp = React.createClass({
     }
 });
 
+function createUserStream(userId) {
+    return createStream("/api/chirps/live", function(stream) {
+        stream.send(JSON.stringify({userIds: [userId]}));
+    });
+}
+
+function createActivityStream(userId) {
+    return createStream("/api/activity/" + userId + "/live");
+}
+
+function createStream(path, onopen) {
+    return {
+        connect: function(onChirp) {
+            var stream = new WebSocket("ws://" + location.host + path);
+            if (onopen) {
+                stream.onopen = function(event) {
+                    onopen(stream, event);
+                }.bind(this);
+            }
+            stream.onmessage = function(event) {
+                var chirp = JSON.parse(event.data);
+                onChirp(chirp);
+            }.bind(this);
+            return {
+                close: function() {
+                    stream.close();
+                }
+            }
+        }
+    };
+}
+
+var ChirpStream = React.createClass({
+    getInitialState: function() {
+        var users = this.props.users;
+        if (!users) {
+            users = {};
+        }
+        return {chirps: [], users: users};
+    },
+    componentDidMount: function() {
+        this.loadingUsers = {};
+        this.stream = this.props.stream.connect(function(chirp) {
+            var newChirps = [chirp].concat(this.state.chirps);
+            this.setState({chirps: newChirps});
+        }.bind(this));
+    },
+    componentWillUnmount: function() {
+        this.stream.close();
+    },
+    loadUser: function(userId) {
+        if (!this.loadingUsers.hasOwnProperty(userId)) {
+            this.loadingUsers[userId] = true;
+            getUser(userId).then(function(user) {
+                if (user) {
+                    var newUsers = this.state.users;
+                    newUsers[userId] = user;
+                    this.setState({users: newUsers});
+                }
+            }.bind(this));
+        }
+    },
+    render: function() {
+        var chirpNodes = this.state.chirps.map(function(chirp) {
+            var userName;
+            if (this.state.users.hasOwnProperty(chirp.userId)) {
+                userName = this.state.users[chirp.userId].name;
+            } else {
+                this.loadUser(chirp.userId);
+                userName = chirp.userId;
+            }
+            return (
+                <Chirp userId={chirp.userId} userName={userName} key={chirp.uuid}>
+                    {chirp.message}
+                </Chirp>
+            );
+        }.bind(this));
+        return (
+            <div className="chirpStream">
+                <hr />
+                {chirpNodes}
+            </div>
+
+        );
+    }
+});
+
 var ChirpForm = React.createClass({
     getInitialState: function() {
         return {message: ""};
@@ -52,6 +151,20 @@ var ChirpForm = React.createClass({
         if (!message) {
             return;
         }
+        sendJson({
+            url: "/api/chirps/live/" + localStorage.userId,
+            type: 'POST',
+            data: {
+                userId: localStorage.userId,
+                message: message
+            },
+            success: function() {
+                this.setState({message: ""});
+            }.bind(this),
+            error: function(xhr, status, err) {
+                console.error(this.props.url, status, err.toString());
+            }.bind(this)
+        });
     },
     render: function() {
         return (
@@ -64,6 +177,24 @@ var ChirpForm = React.createClass({
                 />
                 <input type="submit" value="Post" />
             </form>
+        );
+    }
+});
+
+var ActivityStream = React.createClass({
+    getInitialState: function() {
+        return {users: {}};
+    },
+    render: function() {
+        return (
+            <ContentLayout subtitle="Chirps feed">
+                <Section>
+                    <div className="small-12 columns">
+                        <ChirpForm />
+                        <ChirpStream stream={createActivityStream(localStorage.userId)} users={this.state.users} />
+                    </div>
+                </Section>
+            </ContentLayout>
         );
     }
 });
@@ -95,18 +226,22 @@ var UserChirps = React.createClass({
                 chirpForm = <ChirpForm />
             }
             var userName;
+            var chirpStream;
             if (this.state.user) {
                 userName = this.state.user.name;
                 var users = {};
                 users[userId] = this.state.user;
+                chirpStream = <ChirpStream stream={createUserStream(userId)} users={users}/>;
             } else {
                 userName = userId;
+                chirpStream = <ChirpStream stream={createUserStream(userId)} users={{}}/>;
             }
             return (
                 <ContentLayout subtitle={"Chirps for " + userName}>
                     <Section>
                         <div className="small-12 columns">
                             {chirpForm}
+                            {chirpStream}
                         </div>
                     </Section>
                 </ContentLayout>
@@ -251,10 +386,10 @@ var PageLayout = React.createClass({
 
         var links = <div className="tertiary-nav"></div>;
         var button;
-
         if (this.props.user) {
             links = (
                 <div className="tertiary-nav">
+                    <Link to="/">Feed</Link>,
                     <Link to={"/users/" + this.props.user.userId }>{this.props.user.name}</Link>
                 </div>
             );
@@ -266,45 +401,45 @@ var PageLayout = React.createClass({
         }
 
         return (
-             <div id="clipped">
-                 <div id="site-header">
-                     <div className="row">
-                         <div className="small-3 columns">
-                             <Link to="/" id="logo">My Lagom</Link>
-                         </div>
-                         <div className="small-9 columns">
-                             <nav>
-                                 <div className="tertiary-nav">
-                                     {links}
-                                 </div>
-                                 <div className="primary-nav">
-                                     {button}
-                                 </div>
-                             </nav>
-                         </div>
-                     </div>
-                 </div>
-                 {this.props.children}
+            <div id="clipped">
+                <div id="site-header">
+                    <div className="row">
+                        <div className="small-3 columns">
+                            <Link to="/" id="logo">Chirper</Link>
+                        </div>
+                        <div className="small-9 columns">
+                            <nav>
+                                <div className="tertiary-nav">
+                                    {links}
+                                </div>
+                                <div className="primary-nav">
+                                    {button}
+                                </div>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+                {this.props.children}
             </div>
         );
     }
 });
 
 var ContentLayout = React.createClass({
-   render: function() {
-       return (
-           <div id="page-content">
-               <section id="top">
-                   <div className="row">
-                       <header className="large-12 columns">
+    render: function() {
+        return (
+            <div id="page-content">
+                <section id="top">
+                    <div className="row">
+                        <header className="large-12 columns">
                             <h1>{this.props.subtitle}</h1>
-                       </header>
-                   </div>
-               </section>
-               {this.props.children}
-           </div>
-       );
-   }
+                        </header>
+                    </div>
+                </section>
+                {this.props.children}
+            </div>
+        );
+    }
 });
 
 var App = React.createClass({
@@ -360,6 +495,7 @@ render(
     <Router history={createHistory()}>
         <Route path="/signup" component={SignUpPage}/>
         <Route path="/" component={App}>
+            <IndexRoute component={ActivityStream}/>
             <Route path="/users/:userId" component={UserChirps}/>
         </Route>
     </Router>,
